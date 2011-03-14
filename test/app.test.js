@@ -1,6 +1,6 @@
 process.env.NODE_ENV = 'test';
 
-var app = require('../app'),
+var app = require('../chrono'),
   assert = require('assert'),
   path = require('path'),
   fs = require('fs'),
@@ -16,9 +16,11 @@ function removeTestData(models, next) {
 	  models.forEach(function(modelName) {
 			db.collection(modelName, function(err, collection) {
 				collection.remove(function(err, coll) {
-					collection.createIndex('at', function (err, coll) {
-				    modelCount--;
-			      if (modelCount === 0) next();
+					coll.createIndex('at', function (err, indexName) {
+						coll.insert({ k: modelName, v: 50, at: parseInt(Number(new Date())/1000) }, function(err, ignore) {
+					    modelCount--;
+				      if (modelCount === 0) next();
+						});
 					});
 				});
 			});
@@ -55,6 +57,16 @@ module.exports = {
         assert.includes(res.body, '<option value="logins"');
       });
   },
+
+	'GET /metrics/logins': function(){
+	    assert.response(app,
+	      { url: '/metrics/logins' },
+	      { status: 200, headers: { 'Content-Type': 'application/json' }},
+	      function(res){
+					var data = JSON.parse(res.body);
+					assert.eql(data[0].v, 50);
+	      });
+	  },
 
 	'POST /metrics': function() {
     assert.response(app,

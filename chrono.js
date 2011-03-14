@@ -93,6 +93,24 @@ app.post('/metrics', function(req, res) {
 	});
 });
 
+
+function query() {
+	return {};
+}
+
+app.get('/metrics/:name', function(req, res) {
+	db.open(function(err, ignored) {
+		db.collection(req.params.name, function(err, coll) {
+			coll.find(query(), { sort: [['at', 1]] }, function (err, cursor) {
+				cursor.toArray(function (err, results) {
+					db.close();
+				  res.send(results, 200);
+				});
+			});
+		});
+	});
+});
+
 // Only listen on $ node app.js
 
 if (!module.parent) {
