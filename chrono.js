@@ -111,6 +111,29 @@ app.get('/metrics/:name', function(req, res) {
 	});
 });
 
+app.get('/load/:name', function(req, res) {
+	db.open(function(err, ignored) {
+		now = new Date().getTime();
+		db.collection(req.params.name, function(err, coll) {
+			coll.remove(function(err, coll) {
+				coll.createIndex('at', function (err, indexName) {
+					count = 0
+					for (var idx = 0; idx < 100; idx++) {
+						doc = { at: new Date(now - (idx*60*1000)), k: req.params.name, ip: req.connection.remoteAddress, v: (Math.random() * 1000) }
+						coll.insert(doc, function (err, coll) {
+							count += 1;
+							if (count == 100) {
+								db.close();
+							  res.send('', 201);
+							}
+						});
+					}
+				});
+			});
+		});
+	});
+});
+
 // Only listen on $ node app.js
 
 if (!module.parent) {
