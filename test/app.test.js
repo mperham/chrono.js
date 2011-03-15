@@ -17,10 +17,18 @@ function removeTestData(models, next) {
 			db.collection(modelName, function(err, collection) {
 				collection.remove(function(err, coll) {
 					coll.createIndex('at', function (err, indexName) {
-						coll.insert({ k: modelName, v: 50, at: new Date() }, function(err, ignore) {
-					    modelCount--;
-				      if (modelCount === 0) next();
-						});
+						var count = 0;
+						var now = new Date().getTime(); 
+
+						for (var idx = 0; idx < 1000; idx++) {
+							var doc = { at: new Date(now - (idx*60*60*1000)), k: modelName, v: (Math.random() * 1000) };
+							coll.insert(doc, function (err, coll) {
+								count += 1;
+								if (count == 1000) {
+									next();
+								}
+							});
+						}
 					});
 				});
 			});
@@ -34,7 +42,6 @@ function removeTestData(models, next) {
 
   // Clear tests on each run
   removeTestData(models, function() {
-		console.log("Setup complete");
     // Fixtures
 		
     // var user = new app.User({'email' : 'alex@example.com', 'password' : 'test' });
@@ -64,17 +71,18 @@ module.exports = {
 	      { status: 200, headers: { 'Content-Type': 'application/json' }},
 	      function(res){
 					var data = JSON.parse(res.body);
-					assert.eql(data[0].v, 50);
+					assert.match(data[0][0].v.toString(), /^[\d\.]+$/);
 	      });
 	  },
 
 		'GET /metrics/logins with query parameters': function(){
 				var now = parseInt(new Date().getTime() / 1000);
 
-				var _assert = function(count) {
+				var _assert = function(window_count, count) {
 					return function(res) {
 						var data = JSON.parse(res.body);
-						assert.length(data, count);
+						assert.length(data, window_count);
+						assert.length(data[0], count);
 					};
 				};
 				var _response = { status: 200, headers: { 'Content-Type': 'application/json' }};
@@ -82,19 +90,25 @@ module.exports = {
 		    assert.response(app,
 		      { url: '/metrics/logins?start_time=' + (now - 60) + '&end_time=' + (now + 60) },
 		      _response,
-		      _assert(1)
+		      _assert(1, 1)
 		      );
 
 		    assert.response(app,
 		      { url: '/metrics/logins?start_time=' + (now - 120) + '&end_time=' + (now - 60) },
 		      _response,
-		      _assert(0)
+		      _assert(1, 0)
 					);
 
-		    assert.response(app,
+	      assert.response(app,
 		      { url: '/metrics/logins?start_time=' + (now + 60) + '&end_time=' + (now + 120) },
 		      _response,
-		      _assert(0)
+		      _assert(1, 0)
+					);
+
+			  assert.response(app,
+			    { url: '/metrics/logins?start_time=' + (now - 60) + '&end_time=' + (now + 60) + "&previous=4" },
+			    _response,
+			    _assert(4, 1)
 					);
 		  },
 

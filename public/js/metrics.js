@@ -17,7 +17,7 @@ function initGraph() {
 
 	var metric = $('#metric :selected').val();
 
-	var dataURL = "/metrics/" + metric + "?start_time=1+day+ago&end_time=1+minute+ago&previous=5";
+	var dataURL = "/metrics/" + metric + "?start_time=" + ((new Date().getTime()/1000) - 86400) + "&end_time=" + (new Date().getTime() / 1000) + "&previous=5";
 	$.getJSON(dataURL, function(data) {
 	  var variables = [metric];
 

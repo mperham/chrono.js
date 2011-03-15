@@ -80,9 +80,9 @@ app.get('/', function(req, res) {
 });
 
 app.post('/metrics', function(req, res) {
-	hash = req.body
+	var hash = req.body;
 
-	doc = { at: new Date(hash.at * 1000), v: hash.v.to_f, ip: req.connection.remoteAddress, k: hash['k'] }
+	var doc = { at: new Date(hash.at * 1000), v: hash.v.to_f, ip: req.connection.remoteAddress, k: hash['k'] };
 	db.open(function(err, ignored) {
 		db.collection(doc.k, function(err, coll) {
 			coll.insert(doc, function (err, coll) {
@@ -94,16 +94,17 @@ app.post('/metrics', function(req, res) {
 });
 
 
-function query(req) {
+function query(req, weeks_ago) {
+	var offset = weeks_ago * 60 * 60 * 24 * 7 * 1000;
 	var query = {}
 	if (req.param('start_time', false) || req.param('end_time', false)) {
 		query.at = {} 
 	}
 	if (req.param('start_time', false)) {
-		query.at['$gte'] = new Date(req.param('start_time') * 1000)
+		query.at['$gte'] = new Date(req.param('start_time') * 1000 - offset)
 	}
 	if (req.param('end_time', false)) {
-		query.at['$lt'] = new Date(req.param('end_time') * 1000)
+		query.at['$lt'] = new Date(req.param('end_time') * 1000 - offset)
 	}
 	return query;
 }
@@ -111,12 +112,22 @@ function query(req) {
 app.get('/metrics/:name', function(req, res) {
 	db.open(function(err, ignored) {
 		db.collection(req.params.name, function(err, coll) {
-			coll.find(query(req), { sort: [['at', 1]] }, function (err, cursor) {
-				cursor.toArray(function (err, results) {
-					db.close();
-				  res.send(results, 200);
-				});
-			});
+			var prev = parseInt(req.param('previous', 1));
+			var overallResults = [];
+			for (var i = 0; i < prev; i++) {
+				(function(our_i) {
+					coll.find(query(req, i), { sort: [['at', 1]] }, function (err, cursor) {
+						cursor.toArray(function (err, results) {
+							overallResults[our_i] = results;
+							prev -= 1;
+							if (prev == 0) {
+								db.close();
+							  res.send(overallResults, 200);
+							}
+						});
+					});
+				})(i);
+			}
 		});
 	});
 });
@@ -127,9 +138,9 @@ app.get('/load/:name', function(req, res) {
 		db.collection(req.params.name, function(err, coll) {
 			coll.remove(function(err, coll) {
 				coll.createIndex('at', function (err, indexName) {
-					count = 0
+					var count = 0;
 					for (var idx = 0; idx < 100; idx++) {
-						doc = { at: new Date(now - (idx*60*1000)), k: req.params.name, ip: req.connection.remoteAddress, v: (Math.random() * 1000) }
+						var doc = { at: new Date(now - (idx*60*1000)), k: req.params.name, ip: req.connection.remoteAddress, v: (Math.random() * 1000) };
 						coll.insert(doc, function (err, coll) {
 							count += 1;
 							if (count == 100) {
