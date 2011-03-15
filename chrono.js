@@ -6,28 +6,7 @@ var _ = require('underscore')._,
     backbone = require('backbone'),
     express = require('express'),
     mongodb = require('mongodb'),
-    mustache = require('mustache');
-
-var tmpl = {
-    compile: function (source, options) {
-        if (typeof source == 'string') {
-            return function(options) {
-                options.locals = options.locals || {};
-                options.partials = options.partials || {};
-                if (options.body) // for express.js > v1.0
-                    locals.body = options.body;
-                return mustache.to_html(
-                    source, options.locals, options.partials);
-            };
-        } else {
-            return source;
-        }
-    },
-    render: function (template, options) {
-        template = this.compile(template, options);
-        return template(options);
-    }
-};
+    jqtpl = require('jqtpl');
 
 var app = module.exports = express.createServer();
 
@@ -42,7 +21,6 @@ db.addListener("error", function(error) {
 app.configure(function(){
   app.set('views', __dirname + '/views');
   app.set("view options", {layout: false});
-  app.register(".mustache", tmpl);
   app.use(express.bodyParser());
   app.use(express.methodOverride());
   app.use(app.router);
@@ -70,7 +48,8 @@ app.get('/', function(req, res) {
 				.map(function(x) { return x.substr(x.indexOf('.') + 1); })
 				.reject(function(x) { return (x.indexOf('system.') == 0); })
 				.value();
-		  res.render('index.mustache', {
+			idx = 0;
+		  res.render('index.html.jqtpl', {
 		    locals: {
 		      metrics: pro
 		    }
@@ -140,6 +119,7 @@ app.get('/load/:name', function(req, res) {
 				coll.createIndex('at', function (err, indexName) {
 					var count = 0;
 					var total = 1000;
+
 					_.times(total, function (idx) {
 						var doc = { at: new Date(now - (idx*60*60*1000)), k: req.params.name, ip: req.connection.remoteAddress, v: (40000 + (Math.random() * 20000)) };
 						coll.insert(doc, function (err, coll) {

@@ -13,7 +13,8 @@ function initGraph() {
 	    .width(w)
 	    .height(h)
 	    .margin(20)
-	    .right(40);
+	    .right(40)
+      .canvas('main');
 
 	var metric = $('#metric :selected').val();
 

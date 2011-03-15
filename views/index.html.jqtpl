@@ -33,13 +33,14 @@
       <form id="app_metric">
         <div style="display: inline-block;">
           <select id="metric" name="metric">
-            {{#metrics}}
-            <option value="{{.}}" selected>{{.}}</option>
-            {{/metrics}}
+            {{each(index, name) metrics}}
+            <option value="${name}" {{if index == 0}}selected{{/if}}>${name}</option>
+            {{/each}}
           </select>
         </div>
       </form>
     </header>
+
     <div id="main">
       <script src="//ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.js"></script>
       <script type="text/javascript+protovis">
@@ -51,6 +52,7 @@
         });
       </script>
     </div>
+
     <footer>
       Copyright &copy; 2011 Mike Perham.
     </footer>
