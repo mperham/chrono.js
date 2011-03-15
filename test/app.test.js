@@ -17,7 +17,7 @@ function removeTestData(models, next) {
 			db.collection(modelName, function(err, collection) {
 				collection.remove(function(err, coll) {
 					coll.createIndex('at', function (err, indexName) {
-						coll.insert({ k: modelName, v: 50, at: parseInt(Number(new Date())/1000) }, function(err, ignore) {
+						coll.insert({ k: modelName, v: 50, at: new Date() }, function(err, ignore) {
 					    modelCount--;
 				      if (modelCount === 0) next();
 						});
@@ -67,6 +67,36 @@ module.exports = {
 					assert.eql(data[0].v, 50);
 	      });
 	  },
+
+		'GET /metrics/logins with query parameters': function(){
+				var now = parseInt(new Date().getTime() / 1000);
+
+				var _assert = function(count) {
+					return function(res) {
+						var data = JSON.parse(res.body);
+						assert.length(data, count);
+					};
+				};
+				var _response = { status: 200, headers: { 'Content-Type': 'application/json' }};
+
+		    assert.response(app,
+		      { url: '/metrics/logins?start_time=' + (now - 60) + '&end_time=' + (now + 60) },
+		      _response,
+		      _assert(1)
+		      );
+
+		    assert.response(app,
+		      { url: '/metrics/logins?start_time=' + (now - 120) + '&end_time=' + (now - 60) },
+		      _response,
+		      _assert(0)
+					);
+
+		    assert.response(app,
+		      { url: '/metrics/logins?start_time=' + (now + 60) + '&end_time=' + (now + 120) },
+		      _response,
+		      _assert(0)
+					);
+		  },
 
 	'POST /metrics': function() {
     assert.response(app,

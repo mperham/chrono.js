@@ -94,14 +94,24 @@ app.post('/metrics', function(req, res) {
 });
 
 
-function query() {
-	return {};
+function query(req) {
+	var query = {}
+	if (req.param('start_time', false) || req.param('end_time', false)) {
+		query.at = {} 
+	}
+	if (req.param('start_time', false)) {
+		query.at['$gte'] = new Date(req.param('start_time') * 1000)
+	}
+	if (req.param('end_time', false)) {
+		query.at['$lt'] = new Date(req.param('end_time') * 1000)
+	}
+	return query;
 }
 
 app.get('/metrics/:name', function(req, res) {
 	db.open(function(err, ignored) {
 		db.collection(req.params.name, function(err, coll) {
-			coll.find(query(), { sort: [['at', 1]] }, function (err, cursor) {
+			coll.find(query(req), { sort: [['at', 1]] }, function (err, cursor) {
 				cursor.toArray(function (err, results) {
 					db.close();
 				  res.send(results, 200);
