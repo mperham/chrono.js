@@ -81,6 +81,7 @@ module.exports = {
 				var _assert = function(window_count, count) {
 					return function(res) {
 						var data = JSON.parse(res.body);
+//						console.log(data);
 						assert.length(data, window_count);
 						assert.length(data[0], count);
 					};

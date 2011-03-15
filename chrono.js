@@ -114,20 +114,20 @@ app.get('/metrics/:name', function(req, res) {
 		db.collection(req.params.name, function(err, coll) {
 			var prev = parseInt(req.param('previous', 1));
 			var overallResults = [];
-			for (var i = 0; i < prev; i++) {
-				(function(our_i) {
-					coll.find(query(req, i), { sort: [['at', 1]] }, function (err, cursor) {
-						cursor.toArray(function (err, results) {
-							overallResults[our_i] = results;
-							prev -= 1;
-							if (prev == 0) {
-								db.close();
-							  res.send(overallResults, 200);
-							}
-						});
+			
+			_.times(prev, function(idx) {
+				coll.find(query(req, idx), { sort: [['at', 1]] }, function (err, cursor) {
+					cursor.toArray(function (err, results) {
+						overallResults[idx] = results;
+						prev -= 1;
+						if (prev == 0) {
+							db.close();
+						  res.send(overallResults, 200);
+						}
 					});
-				})(i);
-			}
+				});
+			});
+
 		});
 	});
 });
@@ -139,16 +139,18 @@ app.get('/load/:name', function(req, res) {
 			coll.remove(function(err, coll) {
 				coll.createIndex('at', function (err, indexName) {
 					var count = 0;
-					for (var idx = 0; idx < 100; idx++) {
-						var doc = { at: new Date(now - (idx*60*1000)), k: req.params.name, ip: req.connection.remoteAddress, v: (Math.random() * 1000) };
+					var total = 1000;
+					_.times(total, function (idx) {
+						var doc = { at: new Date(now - (idx*60*60*1000)), k: req.params.name, ip: req.connection.remoteAddress, v: (40000 + (Math.random() * 20000)) };
 						coll.insert(doc, function (err, coll) {
 							count += 1;
-							if (count == 100) {
+							if (count == total) {
 								db.close();
-							  res.send('', 201);
+							  res.send('Loaded ' + total + ' entries', 201);
 							}
 						});
-					}
+					});
+					
 				});
 			});
 		});
