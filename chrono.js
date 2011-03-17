@@ -74,15 +74,12 @@ app.post('/metrics', function(req, res) {
 
 function query(req, weeks_ago) {
   var offset = weeks_ago * 60 * 60 * 24 * 7 * 1000;
+  var default_start = (new Date().getTime() / 1000) - (2*24*60*60);
   var query = {}
-  if (req.param('start_time', false) || req.param('end_time', false)) {
-    query.at = {} 
-  }
-  if (req.param('start_time', false)) {
-    query.at['$gte'] = new Date(req.param('start_time') * 1000 - offset)
-  }
+  query.at = {} 
+  query.at['$gte'] = new Date(req.param('start_time', default_start) * 1000 - offset);
   if (req.param('end_time', false)) {
-    query.at['$lt'] = new Date(req.param('end_time') * 1000 - offset)
+    query.at['$lt'] = new Date(req.param('end_time') * 1000 - offset);
   }
   return query;
 }
