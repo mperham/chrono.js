@@ -21,8 +21,7 @@ Chrono does everything in UTC.  The UI does not have provisions for local time z
 Installation and Usage
 ------------------------
 
-Chrono is 100% JavaScript, using Node.js and Express on the server-side and Protovis, jQuery and other libraries on the
-client side.
+Chrono is 100% JavaScript, using Node.js and Express on the server-side and Protovis, jQuery and other libraries on the client side.
 
 On OSX, you can use Homebrew to install MongoDB:
 

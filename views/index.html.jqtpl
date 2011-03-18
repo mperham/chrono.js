@@ -20,7 +20,7 @@
     header { padding: 5px; background: #66a }
     footer { padding: 5px; background: #fee; background: #66a; color: white; }
     #logo { font-size: 30px; color: #fff; }
-    #logo_box {"width: 200px; display: inline-block; }
+    #logo_box { width: 200px; display: inline-block; }
   </style>
 </head>
 <body>
