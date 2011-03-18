@@ -40,7 +40,9 @@ app.configure('production', function(){
 
 app.get('/', function(req, res) {
   db.open(function(err, ignored) {
+    if (err) console.log(err);
     db.collectionNames(function(err, names) {
+      if (err) console.log(err);
       db.close();
       pro = _(names).chain()
         .pluck('name')
@@ -62,8 +64,11 @@ app.post('/metrics', function(req, res) {
 
   var doc = { at: new Date(hash.at * 1000), v: hash.v.to_f, ip: req.connection.remoteAddress, k: hash['k'] };
   db.open(function(err, ignored) {
+    if (err) console.log(err);
     db.collection(doc.k, function(err, coll) {
+      if (err) console.log(err);
       coll.insert(doc, function (err, coll) {
+        if (err) console.log(err);
         db.close();
         res.send('', 201);
       });
@@ -74,7 +79,7 @@ app.post('/metrics', function(req, res) {
 
 function query(req, weeks_ago) {
   var offset = weeks_ago * 60 * 60 * 24 * 7 * 1000;
-  var default_start = (new Date().getTime() / 1000) - (2*24*60*60);
+  var default_start = (new Date().getTime() / 1000) - (7*24*60*60);
   var query = {}
   query.at = {} 
   query.at['$gte'] = new Date(req.param('start_time', default_start) * 1000 - offset);
@@ -86,13 +91,17 @@ function query(req, weeks_ago) {
 
 app.get('/metrics/:name', function(req, res) {
   db.open(function(err, ignored) {
+    if (err) console.log(err);
     db.collection(req.params.name, function(err, coll) {
+      if (err) console.log(err);
       var prev = parseInt(req.param('previous', 1));
       var overallResults = [];
       
       _.times(prev, function(idx) {
         coll.find(query(req, idx), { sort: [['at', 1]] }, function (err, cursor) {
+          if (err) console.log(err);
           cursor.toArray(function (err, results) {
+            if (err) console.log(err);
             overallResults[idx] = results;
             prev -= 1;
             if (prev == 0) {
