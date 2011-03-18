@@ -49,7 +49,6 @@ app.get('/', function(req, res) {
         .map(function(x) { return x.substr(x.indexOf('.') + 1); })
         .reject(function(x) { return (x.indexOf('system.') == 0); })
         .value();
-      idx = 0;
       res.render('index.html.jqtpl', {
         locals: {
           metrics: pro
