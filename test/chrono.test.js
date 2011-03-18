@@ -5,29 +5,7 @@ var assert = require('assert');
 var tobi = require('tobi');
 var _ = require('underscore')._;
 
-var browser;
-var testCount;
 var models = { logins: 1000, searches: 0, registrations: 0 };
-
-function startServer(fn) {
-  var server = app;
-  server.listen(3000);
-  server.on('listening', function() {
-    browser = tobi.createBrowser(3000, '127.0.0.1');
-    fn(browser, function() {
-      testCount--;
-      if (testCount == 0) {
-        server.close();
-      }
-    });
-  });
-}
-
-function startup(runTests) {
-  initializeDb(function() {
-    startServer(runTests)
-  });
-}
 
 function initializeDb(next) {
   var count = 0;
@@ -74,73 +52,76 @@ function initializeDb(next) {
 
 }
 
-startup(function(browser, done) {
+initializeDb(function() {
 
   exports['GET /'] = function() {
-    browser.get('/', function(res, $) {
-      assert.equal(res.statusCode, 200);
-      assert.length($("option"), 3);
-      done();
-    });
+    assert.response(app,
+      { url: '/' },
+      { status: 200, headers: { 'Content-Type': 'text/html; charset=utf8' }},
+      function(res){
+        assert.includes(res.body, '<option value="logins"');
+      });
   }
 
   exports['POST /metrics'] = function() {
-    browser.post('/metrics', { 
-        headers: { 'content-type': 'application/json' }, 
-        body: JSON.stringify({ k: 'registrations', v: 4, at: parseInt(Number(new Date())/1000) })
-      }, function(res, $) {
-        assert.equal(res.statusCode, 201);
-        assert.match(res.headers['content-type'], /text\/html/);
-        done();
-    });
+    assert.response(app,
+      { url: '/metrics', method: 'POST', headers: { 'content-type': 'application/json' }, data: JSON.stringify({ k: 'registrations', v: 4, at: parseInt(Number(new Date())/1000) }) },
+      { status: 201, headers: { 'Content-Type': 'text/html; charset=utf8' }, body: '' }
+    );
   }
 
   exports['GET /metrics/logins'] = function() {
-    browser.get('/metrics/logins', function(res, data) {
-      assert.equal(res.statusCode, 200);
-      assert.equal(res.header('Content-Type'), 'application/json')
-      assert.ok(_.isArray(data), 'Result is not an array');
-      assert.match(data[0][0].v.toString(), /^[\d\.]+$/);
-      done();
-    });
+    assert.response(app,
+      { url: '/metrics/logins' },
+      { status: 200, headers: { 'Content-Type': 'application/json' }},
+      function(res){
+        var data = JSON.parse(res.body);
+        assert.ok(_.isArray(data), 'Result is not an array');
+        assert.match(data[0][0].v.toString(), /^[\d\.]+$/);
+      });
   }
   
-  var assertResults = function(window_count, count, res, data) {
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.header('Content-Type'), 'application/json')
-    assert.length(data, window_count);
-    assert.length(data[0], count);
+  var assertResults = function(window_count, count) {
+    return function(res) {
+      var data = JSON.parse(res.body);
+      assert.length(data, window_count);
+      assert.length(data[0], count);
+    };
   };
   var now = parseInt(new Date().getTime() / 1000);
+  var _response = { status: 200, headers: { 'Content-Type': 'application/json' }};
 
   exports['GET /metrics/logins current'] = function() {
-    browser.get('/metrics/logins?start_time=' + (now - 60) + '&end_time=' + (now + 60), function(res, data) {
-      assertResults(1, 1, res, data);
-      done();
-    });
+    assert.response(app,
+      { url: '/metrics/logins?start_time=' + (now - 60) + '&end_time=' + (now + 60) },
+      _response,
+      assertResults(1, 1)
+      );
   }
 
   exports['GET /metrics/logins past'] = function() {
-    browser.get('/metrics/logins?start_time=' + (now - 120) + '&end_time=' + (now - 60), function(res, data) {
-      assertResults(1, 0, res, data);
-      done();
-    });
+    assert.response(app,
+      { url: '/metrics/logins?start_time=' + (now - 120) + '&end_time=' + (now - 60) },
+      _response,
+      assertResults(1, 0)
+      );
   }
 
   exports['GET /metrics/logins future'] = function() {
-    browser.get('/metrics/logins?start_time=' + (now + 60) + '&end_time=' + (now + 120), function(res, data) {
-      assertResults(1, 0, res, data);
-      done();
-    });
+    assert.response(app,
+      { url: '/metrics/logins?start_time=' + (now + 60) + '&end_time=' + (now + 120) },
+      _response,
+      assertResults(1, 0)
+      );
   }
 
   exports['GET /metrics/logins with previous weeks'] = function() {
-    browser.get('/metrics/logins?start_time=' + (now - 60) + '&end_time=' + (now + 60) + "&previous=4", function(res, data) {
-      assertResults(4, 1, res, data);
-      done();
-    });
+    assert.response(app,
+      { url: '/metrics/logins?start_time=' + (now - 60) + '&end_time=' + (now + 60) + "&previous=4" },
+      _response,
+      assertResults(4, 1)
+      );
   }
 
-  testCount = _.size(exports);
 });
 
